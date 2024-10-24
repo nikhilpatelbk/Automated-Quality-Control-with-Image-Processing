@@ -1,0 +1,54 @@
+import cv2
+import numpy as np
+
+# Load an image of the product to be tested (ensure the file path is correct)
+image_path = 'file:///C:/Users/patel/Downloads/DALL%C2%B7E%202024-10-24%2023.43.30%20-%20A%20close-up%20image%20of%20a%20product%20on%20a%20conveyor%20belt%20being%20processed%20by%20an%20automated%20packaging%20machine,%20highlighting%20the%20packaging%20with%20clear%20plastic%20wrap.webp'
+image = cv2.imread(image_path)
+
+# Check if the image loaded successfully
+if image is None:
+    print(f"Error: Unable to load image at {image_path}")
+    exit()
+
+# Convert the image to grayscale for analysis
+gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+# Apply Gaussian blur to reduce noise and improve edge detection
+blurred_image = cv2.GaussianBlur(gray_image, (5, 5), 0)
+
+# Use edge detection (Canny) to find edges in the image
+edges = cv2.Canny(blurred_image, threshold1=100, threshold2=200)
+
+# Find contours (shapes) in the image
+contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+# Draw contours on the original image for visualization
+output_image = image.copy()
+cv2.drawContours(output_image, contours, -1, (0, 255, 0), 2)
+
+# Function to detect if the contour is defective based on shape approximation
+def detect_defects(contours):
+    for contour in contours:
+        # Approximate the contour to a polygon
+        perimeter = cv2.arcLength(contour, True)
+        approx = cv2.approxPolyDP(contour, 0.04 * perimeter, True)
+
+        # If the approximated shape has more than 5 vertices, flag it as defective
+        if len(approx) > 5:
+            return True  # Defective product detected
+    return False  # No defect detected
+
+# Detect if there is a defect
+if detect_defects(contours):
+    print("Defective product detected!")
+else:
+    print("Product is OK!")
+
+# Show the output images (with contours drawn)
+cv2.imshow("Original Image", image)
+cv2.imshow("Edge Detection", edges)
+cv2.imshow("Contours", output_image)
+
+# Wait for a key press to close windows
+cv2.waitKey(0)
+cv2.destroyAllWindows()
